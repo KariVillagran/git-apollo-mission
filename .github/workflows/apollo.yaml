@@ -9,64 +9,66 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
   launch:
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
-      - name: 🚀 1) Launch – crea token
-        run: |
-          echo "L" > token.txt
+      - run: echo "L" > token.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: token
-          path: token.txt
-
-  lunar_orbit_insertion:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: token
-      - name: 🌕 3) Lunar Orbit – concatena token
-        run: |
-          echo "N" >> token.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: token
+          name: token1
           path: token.txt
 
   transposition_and_docking:
+    needs: launch
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: token
-      - name: 🔄 2) Docking – concatena token
-        run: |
-          echo "U" >> token.txt
+          name: token1
+      - run: echo "U" >> token.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: token
+          name: token2
+          path: token.txt
+
+  lunar_orbit_insertion:
+    needs: transposition_and_docking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: token2         
+      - run: echo "N" >> token.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: token3          
           path: token.txt
 
   splashdown:
+    needs: lunar_orbit_insertion
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - uses: actions/download-artifact@v4
         with:
-          name: token
+          name: token3
+
       - name: ✅ Verifica token y muestra mensaje lunar
         run: |
-          ACTUAL=$(cat token.txt)
-          EXPECTED="LUN"
-          if [[ "$ACTUAL" == "$EXPECTED" ]]; then
+          ACTUAL=$(tr -d '\n' < token.txt)
+          if [[ "$ACTUAL" == "LUN" ]]; then
             echo "🌊 4) Splashdown completado"
             python apollo/mission.py
           else
-            echo "❌ Secuencia incorrecta. Token='$ACTUAL', esperado='$EXPECTED'"
+            echo "❌ Secuencia incorrecta. Token='$ACTUAL', esperado='LUN'"
             exit 1
           fi
